@@ -1,3 +1,5 @@
+mod xcodebuild;
+
 extern crate args;
 extern crate getopts;
 
@@ -14,6 +16,9 @@ const PROGRAM_NAME: &'static str = "program";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    xcodebuild::build().wait().expect("Build failed");
+
     match parse(&args) {
         Ok(_) => println!("Successfully parsed args"),
         Err(error) => {
