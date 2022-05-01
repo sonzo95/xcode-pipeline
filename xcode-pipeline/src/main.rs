@@ -6,6 +6,7 @@ extern crate getopts;
 use std::env;
 
 use getopts::Occur;
+use xcodebuild::{XcodebuildContextImpl, XcodebuildContext};
 use std::process::exit;
 
 use args::{Args,ArgsError};
@@ -17,7 +18,8 @@ const PROGRAM_NAME: &'static str = "program";
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    xcodebuild::build().wait().expect("Build failed");
+    let context = XcodebuildContextImpl::new(".", "Development", false, "/tmp/prova");
+    context.setup();
 
     match parse(&args) {
         Ok(_) => println!("Successfully parsed args"),

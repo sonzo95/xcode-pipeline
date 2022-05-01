@@ -4,6 +4,10 @@
 
 This project aims to automate the 'archive' and 'publish' phases of iOS apps. It will be based on xcode `.xcworkspace` files and 'schemes'.
 
+## Design
+
+The main function should be able to parse arguments and create an XCodebuildContext, that allows to execute specific operations.
+
 ## Desired Features
 
 ### Args
