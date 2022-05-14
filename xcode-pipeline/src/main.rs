@@ -1,10 +1,12 @@
 mod xcodebuild;
+mod filesystem;
 
 extern crate args;
 extern crate getopts;
 
 use std::env;
 
+use filesystem::filesystem_repository_fs_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
 use xcodebuild::{XcodebuildContextImpl, XcodebuildContext};
 use std::process::exit;
@@ -18,8 +20,10 @@ const PROGRAM_NAME: &'static str = "program";
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let context = XcodebuildContextImpl::new(".", "Development", false, "/tmp/prova");
+    let fs_repo = FileSystemRepositoryFsImpl {};
+    let context = XcodebuildContextImpl::new(".", "Development", false, "/tmp/prova", &fs_repo);
     context.setup();
+    context.tear_down();
 
     match parse(&args) {
         Ok(_) => println!("Successfully parsed args"),
