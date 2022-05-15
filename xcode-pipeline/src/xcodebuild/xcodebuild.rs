@@ -19,7 +19,7 @@ pub struct XcodebuildContextImpl<'a> {
     filesystem_repository: &'a dyn FileSystemRepository,
 }
 
-impl <'a> XcodebuildContextImpl<'a> {
+impl<'a> XcodebuildContextImpl<'a> {
     pub fn new(
         workspace: &str,
         schema: &str,
@@ -46,7 +46,8 @@ impl XcodebuildContext for XcodebuildContextImpl<'_> {
     fn setup(&self) {
         println!("Using storage directory {}", self.storage_folder);
         if !self.dry_run {
-            self.filesystem_repository.create_directory(&self.storage_folder)
+            self.filesystem_repository
+                .create_directory(&self.storage_folder)
                 .expect("couldn't create storage folder");
         }
     }
@@ -64,7 +65,8 @@ impl XcodebuildContext for XcodebuildContextImpl<'_> {
 
     fn tear_down(&self) {
         if !self.dry_run {
-            self.filesystem_repository.delete_directory(&self.storage_folder)
+            self.filesystem_repository
+                .delete_directory(&self.storage_folder)
                 .expect("couldn't delete temp storage folder");
         }
     }

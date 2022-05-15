@@ -1,5 +1,5 @@
-mod xcodebuild;
 mod filesystem;
+mod xcodebuild;
 
 extern crate args;
 extern crate getopts;
@@ -8,11 +8,11 @@ use std::env;
 
 use filesystem::filesystem_repository_fs_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
-use xcodebuild::{XcodebuildContextImpl, XcodebuildContext};
 use std::process::exit;
+use xcodebuild::{XcodebuildContext, XcodebuildContextImpl};
 
-use args::{Args,ArgsError};
-use args::validations::{Order,OrderValidation};
+use args::validations::{Order, OrderValidation};
+use args::{Args, ArgsError};
 
 const PROGRAM_DESC: &'static str = "Run this program";
 const PROGRAM_NAME: &'static str = "program";
@@ -37,18 +37,22 @@ fn main() {
 fn parse(input: &Vec<String>) -> Result<(), ArgsError> {
     let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
     args.flag("h", "help", "Print the usage menu");
-    args.option("i",
+    args.option(
+        "i",
         "iter",
         "The number of times to run this program",
         "TIMES",
         Occur::Req,
-        None);
-    args.option("l",
+        None,
+    );
+    args.option(
+        "l",
         "log_file",
         "The name of the log file",
         "NAME",
         Occur::Optional,
-        Some(String::from("output.log")));
+        Some(String::from("output.log")),
+    );
 
     args.parse(input)?;
 
