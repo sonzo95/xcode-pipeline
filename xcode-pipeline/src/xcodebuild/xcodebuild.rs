@@ -1,4 +1,4 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use rand::Rng;
 
@@ -30,8 +30,8 @@ impl<'a> XcodebuildContextImpl<'a> {
         filesystem_repository: &'a dyn FileSystemRepository,
     ) -> Self {
         let mut rng = rand::thread_rng();
-        let rand_id: i32 = rng.gen();
-        storage_folder_root.push(&rand_id.to_string());
+        let rand_id: u32 = rng.gen();
+        storage_folder_root.push(format!("xccd-{}", rand_id));
 
         Self {
             workspace,
@@ -45,7 +45,10 @@ impl<'a> XcodebuildContextImpl<'a> {
 
 impl XcodebuildContext for XcodebuildContextImpl<'_> {
     fn setup(&self) {
-        println!("Using storage directory {:?}", self.storage_folder.to_str());
+        println!(
+            "Using storage directory {}",
+            self.storage_folder.to_str().unwrap()
+        );
         if !self.dry_run {
             self.filesystem_repository
                 .create_directory(&self.storage_folder.to_str().unwrap())

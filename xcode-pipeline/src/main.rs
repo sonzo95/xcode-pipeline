@@ -1,83 +1,83 @@
 mod filesystem;
 mod git;
+mod validation;
 mod xcodebuild;
 
 extern crate args;
 extern crate getopts;
 
 use std::env;
-use std::path::{PathBuf, Path};
+use std::path::Path;
 
 use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
-use std::process::exit;
 use xcodebuild::{XcodebuildContext, XcodebuildContextImpl};
 
-use args::validations::{Order, OrderValidation};
 use args::{Args, ArgsError};
 
-const PROGRAM_DESC: &'static str = "Run this program";
-const PROGRAM_NAME: &'static str = "program";
+const PROGRAM_DESC: &'static str = "Archive and export one or more schemes of your iOS app project";
+const PROGRAM_NAME: &'static str = "xc-cd";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    let input: Input;
+    match parse(&args).unwrap() {
+        ParseResult::Help => return,
+        ParseResult::Input(input_) => input = input_,
+    }
+    println!("Executing with inputs: {:?}", input);
 
     let fs_repo = FileSystemRepositoryFsImpl {};
     let context = XcodebuildContextImpl::new(
         Path::new(".").to_path_buf(),
         "Development",
         false,
-        Path::new("/tmp/prova").to_path_buf(),
-        &fs_repo
+        Path::new("/tmp").to_path_buf(),
+        &fs_repo,
     );
     context.setup();
     context.tear_down();
-
-    match parse(&args) {
-        Ok(_) => println!("Successfully parsed args"),
-        Err(error) => {
-            println!("{}", error);
-            exit(1);
-        }
-    };
 }
 
-fn parse(input: &Vec<String>) -> Result<(), ArgsError> {
+#[derive(Debug, Clone)]
+struct Input {
+    dry_run: bool,
+    schemes: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+enum ParseResult {
+    Help,
+    Input(Input),
+}
+
+fn parse(input: &Vec<String>) -> Result<ParseResult, ArgsError> {
     let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
     args.flag("h", "help", "Print the usage menu");
+    args.flag(
+        "",
+        "dry-run",
+        "Run the script without archiving or exporting",
+    );
     args.option(
-        "i",
-        "iter",
-        "The number of times to run this program",
-        "TIMES",
-        Occur::Req,
+        "s",
+        "schema",
+        "A schema to build",
+        "SCHEMA",
+        Occur::Multi,
         None,
     );
-    args.option(
-        "l",
-        "log_file",
-        "The name of the log file",
-        "NAME",
-        Occur::Optional,
-        Some(String::from("output.log")),
-    );
-
     args.parse(input)?;
 
     let help = args.value_of("help")?;
     if help {
         println!("{}", args.full_usage());
-        return Ok(());
+        return Ok(ParseResult::Help);
     }
 
-    let gt_0 = Box::new(OrderValidation::new(Order::GreaterThan, 0u32));
-    let lt_10 = Box::new(OrderValidation::new(Order::LessThanOrEqual, 10u32));
+    let dry_run: bool = args.value_of("dry-run")?;
+    let schemes = args.values_of::<String>("schema")?;
 
-    let iters = args.validated_value_of("iter", &[gt_0, lt_10])?;
-    for iter in 0..iters {
-        println!("Working on iteration {}", iter);
-    }
-    println!("All done.");
-
-    Ok(())
+    Ok(ParseResult::Input(Input { dry_run, schemes }))
 }
