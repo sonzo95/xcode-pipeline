@@ -6,6 +6,7 @@ extern crate args;
 extern crate getopts;
 
 use std::env;
+use std::path::{PathBuf, Path};
 
 use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
@@ -22,7 +23,13 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     let fs_repo = FileSystemRepositoryFsImpl {};
-    let context = XcodebuildContextImpl::new(".", "Development", false, "/tmp/prova", &fs_repo);
+    let context = XcodebuildContextImpl::new(
+        Path::new(".").to_path_buf(),
+        "Development",
+        false,
+        Path::new("/tmp/prova").to_path_buf(),
+        &fs_repo
+    );
     context.setup();
     context.tear_down();
 

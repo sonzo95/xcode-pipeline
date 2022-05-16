@@ -23,7 +23,11 @@ impl GitService for GitServiceImpl {
             Cred::ssh_key(
                 username_from_url.unwrap(),
                 None,
-                Path::new(&format!("{}/.ssh/{}", env::var("HOME").unwrap(), ssh_key_name)),
+                Path::new(&format!(
+                    "{}/.ssh/{}",
+                    env::var("HOME").unwrap(),
+                    ssh_key_name
+                )),
                 None,
             )
         });

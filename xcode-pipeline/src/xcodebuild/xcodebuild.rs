@@ -1,3 +1,5 @@
+use std::path::{PathBuf};
+
 use rand::Rng;
 
 use crate::filesystem::repository::FileSystemRepository;
@@ -12,42 +14,41 @@ pub trait XcodebuildContext {
 }
 
 pub struct XcodebuildContextImpl<'a> {
-    workspace: String,
+    workspace: PathBuf,
     schema: String,
     dry_run: bool,
-    storage_folder: String,
+    storage_folder: PathBuf,
     filesystem_repository: &'a dyn FileSystemRepository,
 }
 
 impl<'a> XcodebuildContextImpl<'a> {
     pub fn new(
-        workspace: &str,
+        workspace: PathBuf,
         schema: &str,
         dry_run: bool,
-        storage_folder_root: &str, // save some directory type
+        mut storage_folder_root: PathBuf, // save some directory type
         filesystem_repository: &'a dyn FileSystemRepository,
     ) -> Self {
-        let mut storage_name = storage_folder_root.to_string();
         let mut rng = rand::thread_rng();
         let rand_id: i32 = rng.gen();
-        storage_name.push_str(&rand_id.to_string());
+        storage_folder_root.push(&rand_id.to_string());
 
         Self {
-            workspace: workspace.to_string(),
+            workspace,
             schema: schema.to_string(),
             dry_run,
-            storage_folder: storage_name,
-            filesystem_repository: filesystem_repository,
+            storage_folder: storage_folder_root,
+            filesystem_repository,
         }
     }
 }
 
 impl XcodebuildContext for XcodebuildContextImpl<'_> {
     fn setup(&self) {
-        println!("Using storage directory {}", self.storage_folder);
+        println!("Using storage directory {:?}", self.storage_folder.to_str());
         if !self.dry_run {
             self.filesystem_repository
-                .create_directory(&self.storage_folder)
+                .create_directory(&self.storage_folder.to_str().unwrap())
                 .expect("couldn't create storage folder");
         }
     }
@@ -64,9 +65,13 @@ impl XcodebuildContext for XcodebuildContextImpl<'_> {
     }
 
     fn tear_down(&self) {
+        println!(
+            "Deleting storage directory {:?}",
+            self.storage_folder.to_str()
+        );
         if !self.dry_run {
             self.filesystem_repository
-                .delete_directory(&self.storage_folder)
+                .delete_directory(&self.storage_folder.to_str().unwrap())
                 .expect("couldn't delete temp storage folder");
         }
     }
