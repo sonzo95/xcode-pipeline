@@ -1,7 +1,7 @@
 use std::fs::remove_dir_all;
 use std::fs::DirBuilder;
 
-use super::filesystem_repository::FileSystemRepository;
+use super::repository::FileSystemRepository;
 
 pub struct FileSystemRepositoryFsImpl {}
 

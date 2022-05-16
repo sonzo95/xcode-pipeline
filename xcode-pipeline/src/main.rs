@@ -1,4 +1,5 @@
 mod filesystem;
+mod git;
 mod xcodebuild;
 
 extern crate args;
@@ -6,7 +7,7 @@ extern crate getopts;
 
 use std::env;
 
-use filesystem::filesystem_repository_fs_impl::FileSystemRepositoryFsImpl;
+use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
 use std::process::exit;
 use xcodebuild::{XcodebuildContext, XcodebuildContextImpl};
