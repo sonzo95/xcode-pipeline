@@ -2,32 +2,32 @@ use std::path::PathBuf;
 
 use rand::Rng;
 
-use crate::filesystem::repository::FileSystemRepository;
+use crate::{filesystem::repository::FileSystemRepository, git::git_service::GitService};
 
 use super::xcodebuild_command_factory::XcodebuildCommandFactory;
 
 pub trait XcodebuildContext {
     fn setup(&self);
-    fn archive(&self);
-    fn export(&self);
+    fn archive(&self, schema: &str);
+    fn export(&self, schema: &str);
     fn tear_down(&self);
 }
 
-pub struct XcodebuildContextImpl<'a> {
+// LOCAL WORKSPACE
+
+pub struct XcodebuildContextLocalWs<'a, 'b> {
     workspace: PathBuf,
-    schema: String,
-    dry_run: bool,
     storage_folder: PathBuf,
     filesystem_repository: &'a dyn FileSystemRepository,
+    command_factory: &'b XcodebuildCommandFactory,
 }
 
-impl<'a> XcodebuildContextImpl<'a> {
+impl<'a, 'b> XcodebuildContextLocalWs<'a, 'b> {
     pub fn new(
         workspace: PathBuf,
-        schema: &str,
-        dry_run: bool,
-        mut storage_folder_root: PathBuf, // save some directory type
+        mut storage_folder_root: PathBuf,
         filesystem_repository: &'a dyn FileSystemRepository,
+        command_factory: &'b XcodebuildCommandFactory,
     ) -> Self {
         let mut rng = rand::thread_rng();
         let rand_id: u32 = rng.gen();
@@ -35,34 +35,32 @@ impl<'a> XcodebuildContextImpl<'a> {
 
         Self {
             workspace,
-            schema: schema.to_string(),
-            dry_run,
             storage_folder: storage_folder_root,
             filesystem_repository,
+            command_factory,
         }
     }
 }
 
-impl XcodebuildContext for XcodebuildContextImpl<'_> {
+impl XcodebuildContext for XcodebuildContextLocalWs<'_, '_> {
     fn setup(&self) {
         println!(
             "Using storage directory {}",
             self.storage_folder.to_str().unwrap()
         );
-        if !self.dry_run {
-            self.filesystem_repository
-                .create_directory(&self.storage_folder.to_str().unwrap())
-                .expect("couldn't create storage folder");
-        }
+        self.filesystem_repository
+            .create_directory(&self.storage_folder.to_str().unwrap())
+            .expect("couldn't create storage folder");
     }
 
-    fn archive(&self) {
-        XcodebuildCommandFactory::build_clean_archive(&self.workspace, &self.schema, self.dry_run)
+    fn archive(&self, schema: &str) {
+        self.command_factory
+            .build_clean_archive(&self.workspace, schema)
             .status()
             .expect("Couldn't run archive");
     }
 
-    fn export(&self) {
+    fn export(&self, schema: &str) {
         // export
         unimplemented!()
     }
@@ -72,10 +70,95 @@ impl XcodebuildContext for XcodebuildContextImpl<'_> {
             "Deleting storage directory {:?}",
             self.storage_folder.to_str()
         );
-        if !self.dry_run {
-            self.filesystem_repository
-                .delete_directory(&self.storage_folder.to_str().unwrap())
-                .expect("couldn't delete temp storage folder");
+        self.filesystem_repository
+            .delete_directory(&self.storage_folder.to_str().unwrap())
+            .expect("couldn't delete temp storage folder");
+    }
+}
+
+// GIT WORKSPACE
+
+pub struct XcodebuildContextGitWs<'a> {
+    git_url: &'a str,
+    git_root_folder: &'a str,
+    branch: Option<&'a str>,
+    storage_folder: PathBuf,
+    filesystem_repository: &'a dyn FileSystemRepository,
+    command_factory: &'a XcodebuildCommandFactory,
+    git_service: &'a dyn GitService,
+    ssh_key_name: String,
+}
+
+const DEFAULT_SSH_KEY_NAME: &'static str = "id_ed25519";
+
+impl<'a> XcodebuildContextGitWs<'a> {
+    pub fn new(
+        git_url: &'a str,
+        git_root_folder: &'a str,
+        branch: Option<&'a str>,
+        mut storage_folder_root: PathBuf,
+        filesystem_repository: &'a dyn FileSystemRepository,
+        command_factory: &'a XcodebuildCommandFactory,
+        git_service: &'a dyn GitService,
+    ) -> Self {
+        let mut rng = rand::thread_rng();
+        let rand_id: u32 = rng.gen();
+        storage_folder_root.push(format!("xc-cd-{}", rand_id));
+
+        Self {
+            git_url,
+            git_root_folder,
+            branch,
+            storage_folder: storage_folder_root,
+            filesystem_repository,
+            command_factory,
+            git_service,
+            ssh_key_name: std::env::var("SSH_KEY_NAME").unwrap_or(DEFAULT_SSH_KEY_NAME.to_string()),
         }
+    }
+}
+
+impl XcodebuildContext for XcodebuildContextGitWs<'_> {
+    fn setup(&self) {
+        println!(
+            "Using storage directory {}",
+            self.storage_folder.to_str().unwrap()
+        );
+        self.filesystem_repository
+            .create_directory(&self.storage_folder.to_str().unwrap())
+            .expect("couldn't create storage folder");
+        println!("Cloning {} on branch {:?}", self.git_url, self.branch);
+        self.git_service
+            .clone(
+                self.git_url,
+                self.storage_folder.as_path(),
+                self.branch,
+                "id_",
+            )
+            .expect("Failed to clone repository");
+    }
+
+    fn archive(&self, schema: &str) {
+        let mut workspace = self.storage_folder.clone();
+        workspace.push(self.git_root_folder);
+        self.command_factory
+            .build_clean_archive(&workspace, schema)
+            .status()
+            .expect("Couldn't run archive");
+    }
+
+    fn export(&self, schema: &str) {
+        // export
+        unimplemented!()
+    }
+
+    fn tear_down(&self) {
+        println!(
+            "Deleting storage directory {:?}",
+            self.storage_folder.to_str()
+        );
+        self.filesystem_repository
+            .delete_directory(&self.storage_folder.to_str().unwrap())
+            .expect("couldn't delete temp storage folder");
     }
 }
