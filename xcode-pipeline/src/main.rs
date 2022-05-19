@@ -13,12 +13,11 @@ use std::{collections::HashMap, env};
 
 use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
-use task::task::{Named, Task, TaskGenerator, TaskFactory};
+use task::task::{Named, Task, TaskFactory, TaskGenerator};
 use xcodebuild::{XcodebuildContext, XcodebuildContextLocalWs};
 
 use args::{Args, ArgsError};
 
-use crate::task::cd_local::CDLocal;
 use crate::xcodebuild::xcodebuild_command_factory::XcodebuildCommandFactory;
 
 struct FnContainer {
@@ -37,11 +36,12 @@ impl TaskRegistry {
     }
 
     fn register<T: Named + TaskGenerator>(&mut self) {
-        self.map.insert(T::name(), T::get_factory());
+        let name = T::name();
+        println!("Registering component as {}", name);
+        self.map.insert(name, T::get_factory());
     }
 
-    
-    fn make_task(&self, name: &str, args: Vec<String>) -> Option<Box<dyn Task>> {
+    fn make_task(&self, name: &str, args: Vec<String>) -> Option<Result<Box<dyn Task>, ArgsError>> {
         self.map
             .get(name)
             .map(|factory| (factory.instantiate)(&args))
@@ -88,12 +88,20 @@ enum ParseResult<T: Sized> {
 }
 
 mod tests {
-    use crate::{TaskRegistry, task::task::{Task, Named, TaskGenerator, TaskFactory}};
+    use args::ArgsError;
+    use macros::Task;
 
+    use crate::{
+        task::task::{Named, Task, TaskFactory, TaskGenerator},
+        TaskRegistry,
+    };
+
+    #[derive(Task)]
     struct TaskImpl {}
+
     impl TaskImpl {
-        fn new(_: &Vec<String>) -> Box<dyn Task> {
-            Box::new(TaskImpl {  })
+        fn new(_: &Vec<String>) -> Result<Box<dyn Task>, ArgsError> {
+            Ok(Box::new(TaskImpl {}))
         }
     }
     impl Task for TaskImpl {
@@ -101,25 +109,15 @@ mod tests {
             println!("TaskImpl running!");
         }
     }
-    // Named and TaskGenerator could be implemented via derive macro
-    impl Named for TaskImpl {
-        fn name() -> String {
-            "impl".to_owned()
-        }
-    }
-    impl TaskGenerator for TaskImpl {
-        fn get_factory() -> TaskFactory {
-            TaskFactory { 
-                instantiate: TaskImpl::new,
-            }
-        }
-    }
 
     #[test]
     fn task_registry() {
         let mut registry = TaskRegistry::new();
         registry.register::<TaskImpl>();
-        let task = registry.make_task("impl", vec!("parm".to_owned())).unwrap();
+        let task = registry
+            .make_task("taskImpl", vec!["param".to_owned()])
+            .expect("taskImpl not registered")
+            .expect("task could not be instantiated");
         task.run();
     }
 }
