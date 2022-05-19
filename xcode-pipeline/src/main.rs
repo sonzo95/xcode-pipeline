@@ -2,26 +2,64 @@ mod filesystem;
 mod git;
 mod validation;
 mod xcodebuild;
+mod task;
 
 extern crate args;
 extern crate getopts;
 
-use std::env;
+use std::any::{TypeId, Any};
+use std::{env, collections::HashMap};
 use std::path::Path;
 
 use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
+use task::task::{Task, TaskGenerator, Named};
 use xcodebuild::{XcodebuildContext, XcodebuildContextLocalWs};
 
 use args::{Args, ArgsError};
 
+use crate::task::cd_local::CDLocal;
 use crate::xcodebuild::xcodebuild_command_factory::XcodebuildCommandFactory;
 
-const PROGRAM_DESC: &'static str = "Archive and export one or more schemes of your iOS app project";
-const PROGRAM_NAME: &'static str = "xc-cd";
+struct FnContainer {
+    f: &'static dyn Fn(&Vec<String>) -> dyn Task
+}
+
+struct TaskRegistry {
+    map: HashMap<String, Box<dyn Any>>,
+}
+
+impl TaskRegistry {
+    fn new() -> Self {
+        TaskRegistry { 
+            map: HashMap::new(),
+        }
+    }
+
+    fn register<T: Named + TaskGenerator>(&mut self) {
+        self.map[&T::name()] = Box::new(FnContainer { f: &T::new });
+    }
+
+    fn make_task(&self, name: &str, args: Vec<String>) -> Option<Box<dyn Task>> {
+        self.map.get(name).map(
+            |&task_gen| -> Box<dyn Task> {task_gen.downcast::<dyn Fn(&Vec<String>) -> dyn Task>()(args)}
+        )
+    }
+
+    fn get_tasks(&self) -> Vec<String> {
+        self.map.keys()
+    }
+}
+
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    let registry = TaskRegistry::new();
+    registry.register::<CDLocal>();
+
+    let task_name = args[1];
 
     let input: Input;
     match parse(&args).unwrap() {
@@ -50,50 +88,7 @@ struct Input {
 }
 
 #[derive(Debug, Clone)]
-enum ParseResult {
+enum ParseResult<T: Sized> {
     Help,
-    Input(Input),
-}
-
-fn parse(input: &Vec<String>) -> Result<ParseResult, ArgsError> {
-    let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
-    args.flag("h", "help", "Print the usage menu");
-    args.flag(
-        "",
-        "dry-run",
-        "Run the script without archiving or exporting",
-    );
-    args.option(
-        "s",
-        "schema",
-        "A schema to build",
-        "SCHEMA",
-        Occur::Multi,
-        None,
-    );
-    args.option(
-        "b",
-        "branch",
-        "The branch of the repository to clone and process",
-        "BRANCH",
-        Occur::Optional,
-        None,
-    );
-    args.parse(input)?;
-
-    let help = args.value_of("help")?;
-    if help {
-        println!("{}", args.full_usage());
-        return Ok(ParseResult::Help);
-    }
-
-    let dry_run: bool = args.value_of("dry-run")?;
-    let schemes = args.values_of::<String>("schema")?;
-    let branch = args.value_of("branch")?;
-
-    Ok(ParseResult::Input(Input {
-        dry_run,
-        schemes,
-        branch,
-    }))
+    Input(T),
 }

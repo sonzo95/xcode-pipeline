@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rand::Rng;
 
@@ -140,7 +140,14 @@ impl XcodebuildContext for XcodebuildContextGitWs<'_> {
 
     fn archive(&self, schema: &str) {
         let mut workspace = self.storage_folder.clone();
-        workspace.push(self.git_root_folder);
+        if let Some(git_dir) = std::fs::read_dir(self.storage_folder.clone())
+            .expect("Could not open storage_folder")
+            .find(|entry| entry.as_ref().unwrap().path().is_dir())
+            .map(|res| res.unwrap())
+        {
+            workspace.push(git_dir.path());
+        }
+
         self.command_factory
             .build_clean_archive(&workspace, schema)
             .status()
