@@ -13,28 +13,9 @@ pub trait Task {
     fn run(&self);
 }
 
-
 pub trait TaskGenerator {
-    fn get_factory() -> TaskFactory<'static>;
+    fn get_factory() -> TaskFactory;
 }
-pub struct TaskFactory<'a> {
-    instantiate: &'a dyn Fn(&Vec<String>) -> dyn Task,
-}
-
-impl<'a> TaskFactory<'a> {
-    fn create_task(&self, args: &Vec<String>) -> Box<dyn Task> {
-        Box::new((self.instantiate)(args))
-    }
-}
-
-
-
-impl CDLocal {
-    fn new(args: &Vec<String>) -> Self {todo!()}
-}
-
-impl TaskGenerator for CDLocal {
-    fn get_factory() -> TaskFactory<'static> {
-        TaskFactory { instantiate: &Self::new }
-    }
+pub struct TaskFactory {
+    pub instantiate: fn(&Vec<String>) -> Box<dyn Task>,
 }
