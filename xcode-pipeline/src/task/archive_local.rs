@@ -6,15 +6,15 @@ use crate::{Input, ParseResult};
 
 use super::task::Task;
 
-const PROGRAM_DESC: &'static str = "Archive and export one or more schemes of your iOS app project";
-const PROGRAM_NAME: &'static str = "xc-cd";
+const TASK_DESC: &'static str = "Archive one or more schemes of your iOS app project using your local workspace";
+const TASK_NAME: &'static str = "archiveLocal";
 
 #[derive(Task)]
 pub struct ArchiveLocal {}
 
 impl ArchiveLocal {
     pub fn new(input: &Vec<String>) -> Result<Box<dyn Task>, ArgsError> {
-        let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
+        let mut args = Args::new(TASK_NAME, TASK_DESC);
         args.flag("h", "help", "Print the usage menu");
         args.flag(
             "",

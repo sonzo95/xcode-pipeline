@@ -5,10 +5,10 @@ use crate::{Input, ParseResult};
 
 use super::task::Task;
 
-const PROGRAM_DESC: &'static str = "Archive and export one or more schemes of your iOS app project";
-const PROGRAM_NAME: &'static str = "xc-cd";
+const TASK_DESC: &'static str = "Archive one or more schemes of your iOS app project, cloned from a remote git repository";
+const TASK_NAME: &'static str = "xc-cd";
 
-pub struct CDLocal {}
+pub struct ArchiveGit {}
 /*
 impl Task for CDLocal {
     fn name() -> String {
