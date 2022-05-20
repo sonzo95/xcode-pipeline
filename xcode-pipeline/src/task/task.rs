@@ -1,13 +1,10 @@
 use args::ArgsError;
 
-//pub trait TaskGenerator3 = &'static Fn(Vec<String>) -> Result<dyn Task, ArgsError>;
-
 pub trait Named {
     fn name() -> String;
 }
 
 pub trait Task {
-    //fn new(args: &Vec<String>) -> Result<dyn Task, ArgsError>;
     fn run(&self);
 }
 

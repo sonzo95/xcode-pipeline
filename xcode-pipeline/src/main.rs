@@ -8,52 +8,33 @@ extern crate args;
 extern crate getopts;
 
 use std::any::{Any, TypeId};
-use std::path::Path;
+use std::fmt::Display;
+use std::path::{Path};
 use std::{collections::HashMap, env};
 
 use filesystem::repository_impl::FileSystemRepositoryFsImpl;
 use getopts::Occur;
+use task::archive_local::ArchiveLocal;
 use task::task::{Named, Task, TaskFactory, TaskGenerator};
+use task::task_registry::TaskRegistry;
 use xcodebuild::{XcodebuildContext, XcodebuildContextLocalWs};
 
 use args::{Args, ArgsError};
 
 use crate::xcodebuild::xcodebuild_command_factory::XcodebuildCommandFactory;
 
-struct FnContainer {
-    f: &'static dyn Fn(&Vec<String>) -> dyn Task,
-}
-
-struct TaskRegistry {
-    map: HashMap<String, TaskFactory>,
-}
-
-impl TaskRegistry {
-    fn new() -> Self {
-        TaskRegistry {
-            map: HashMap::new(),
-        }
-    }
-
-    fn register<T: Named + TaskGenerator>(&mut self) {
-        let name = T::name();
-        println!("Registering component as {}", name);
-        self.map.insert(name, T::get_factory());
-    }
-
-    fn make_task(&self, name: &str, args: Vec<String>) -> Option<Result<Box<dyn Task>, ArgsError>> {
-        self.map
-            .get(name)
-            .map(|factory| (factory.instantiate)(&args))
-    }
-}
+const PROGRAM_DESC: &'static str = 
+r"Archive and export one or more schemes of your iOS app project.
+USAGE: xccd [task] [options...]";
+const PROGRAM_NAME: &'static str = "xccd";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let mut registry = TaskRegistry::new();
+    registry.register::<ArchiveLocal>();
+    parse(&args, &registry);
 
-    let registry = TaskRegistry::new();
-
-    let task_name = &args[1];
+    //let task_name = &args[1];
 
     let input: Input;
     /*match parse(&args).unwrap() {
@@ -87,37 +68,26 @@ enum ParseResult<T: Sized> {
     Input(T),
 }
 
-mod tests {
-    use args::ArgsError;
-    use macros::Task;
+enum XccdArgs {
+    Help,
+}
 
-    use crate::{
-        task::task::{Named, Task, TaskFactory, TaskGenerator},
-        TaskRegistry,
-    };
+mod arg {
+    pub const HELP: &'static str = "help";
+}
 
-    #[derive(Task)]
-    struct TaskImpl {}
+fn parse(input: &Vec<String>, registry: &TaskRegistry) -> Result<ParseResult<String>, args::ArgsError> {
+    let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
+    args.flag("h", arg::HELP, "Print the usage menu");
+    args.parse(input)?;
 
-    impl TaskImpl {
-        fn new(_: &Vec<String>) -> Result<Box<dyn Task>, ArgsError> {
-            Ok(Box::new(TaskImpl {}))
-        }
-    }
-    impl Task for TaskImpl {
-        fn run(&self) {
-            println!("TaskImpl running!");
-        }
+    let help = args.value_of(arg::HELP)?;
+    if help {
+        println!("{}", args.full_usage());
+        println!("Tasks:\n    {}", registry.task_names().join(", "));
+        return Ok(ParseResult::Help);
     }
 
-    #[test]
-    fn task_registry() {
-        let mut registry = TaskRegistry::new();
-        registry.register::<TaskImpl>();
-        let task = registry
-            .make_task("taskImpl", vec!["param".to_owned()])
-            .expect("taskImpl not registered")
-            .expect("task could not be instantiated");
-        task.run();
-    }
+    Err(ArgsError::new("asd", "dd"))
+    //Ok(ParseResult::Input())
 }
