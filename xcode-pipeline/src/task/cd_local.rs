@@ -5,7 +5,8 @@ use crate::{Input, ParseResult};
 
 use super::task::Task;
 
-const TASK_DESC: &'static str = "Archive one or more schemes of your iOS app project, cloned from a remote git repository";
+const TASK_DESC: &'static str =
+    "Archive one or more schemes of your iOS app project, cloned from a remote git repository";
 const TASK_NAME: &'static str = "xc-cd";
 
 pub struct ArchiveGit {}

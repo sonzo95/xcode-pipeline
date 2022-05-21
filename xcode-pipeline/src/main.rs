@@ -7,41 +7,38 @@ mod xcodebuild;
 extern crate args;
 extern crate getopts;
 
-use std::any::{Any, TypeId};
-use std::fmt::Display;
-use std::path::{Path};
-use std::{collections::HashMap, env};
-
-use filesystem::repository_impl::FileSystemRepositoryFsImpl;
-use getopts::Occur;
 use task::archive_local::ArchiveLocal;
-use task::task::{Named, Task, TaskFactory, TaskGenerator};
 use task::task_registry::TaskRegistry;
-use xcodebuild::{XcodebuildContext, XcodebuildContextLocalWs};
 
 use args::{Args, ArgsError};
 
-use crate::xcodebuild::xcodebuild_command_factory::XcodebuildCommandFactory;
-
-const PROGRAM_DESC: &'static str = 
-r"Archive and export one or more schemes of your iOS app project.
+const PROGRAM_DESC: &'static str = r"Archive and export one or more schemes of your iOS app project.
 USAGE: xccd [task] [options...]";
 const PROGRAM_NAME: &'static str = "xccd";
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
     let mut registry = TaskRegistry::new();
     registry.register::<ArchiveLocal>();
-    parse(&args, &registry);
 
-    //let task_name = &args[1];
+    let input_args: Vec<String> = std::env::args().collect();
+    let mut args = get_main_args();
+    let cmd = parse(&mut args, &input_args, &registry).unwrap();
 
-    let input: Input;
-    /*match parse(&args).unwrap() {
+    let task_name = match cmd {
         ParseResult::Help => return,
-        ParseResult::Input(input_) => input = input_,
-    }
-    println!("Executing with inputs: {:?}", input);
+        ParseResult::Input(s) => s,
+    };
+
+    let task = registry
+        .make_task(&task_name, &input_args)
+        .expect(&format!(
+            "Task {} not found. Use --help to see a list of supported tasks.",
+            task_name
+        ))
+        .unwrap();
+
+    task.run();
+    /*println!("Executing with inputs: {:?}", input);
 
     let fs_repo = FileSystemRepositoryFsImpl {};
     let command_factory = XcodebuildCommandFactory::new(input.dry_run);
@@ -68,26 +65,52 @@ enum ParseResult<T: Sized> {
     Input(T),
 }
 
-enum XccdArgs {
-    Help,
+#[derive(Debug, Clone, Copy)]
+enum TokenType {
+    Word,
+    Option,
 }
 
-mod arg {
-    pub const HELP: &'static str = "help";
+fn get_token_type(token: &str) -> TokenType {
+    if token.starts_with("-") || token.starts_with("--") {
+        return TokenType::Option;
+    }
+    TokenType::Word
 }
 
-fn parse(input: &Vec<String>, registry: &TaskRegistry) -> Result<ParseResult<String>, args::ArgsError> {
+fn get_main_args() -> Args {
     let mut args = Args::new(PROGRAM_NAME, PROGRAM_DESC);
-    args.flag("h", arg::HELP, "Print the usage menu");
+    args.flag("h", "help", "Print the usage menu");
+    args
+}
+
+fn parse(
+    args: &mut Args,
+    input: &Vec<String>,
+    registry: &TaskRegistry,
+) -> Result<ParseResult<String>, args::ArgsError> {
+    match get_token_type(&input[1]) {
+        TokenType::Word => {
+            return Ok(ParseResult::Input(input[1].to_owned()));
+        }
+        _ => {}
+    };
+
     args.parse(input)?;
 
-    let help = args.value_of(arg::HELP)?;
+    let help = args.value_of("help")?;
     if help {
-        println!("{}", args.full_usage());
-        println!("Tasks:\n    {}", registry.task_names().join(", "));
+        print_help(args, registry);
         return Ok(ParseResult::Help);
     }
 
-    Err(ArgsError::new("asd", "dd"))
-    //Ok(ParseResult::Input())
+    Err(ArgsError::new(
+        "global",
+        "First arg must be a task name. Use --help to see a list of supported tasks.",
+    ))
+}
+
+fn print_help(args: &Args, registry: &TaskRegistry) {
+    println!("{}", args.full_usage());
+    println!("Tasks:\n    {}", registry.task_names().join(", "));
 }

@@ -24,7 +24,7 @@ impl TaskRegistry {
     pub fn make_task(
         &self,
         name: &str,
-        args: Vec<String>,
+        args: &Vec<String>,
     ) -> Option<Result<Box<dyn Task>, ArgsError>> {
         self.map
             .get(name)
@@ -65,7 +65,7 @@ mod tests {
         let mut registry = TaskRegistry::new();
         registry.register::<TaskImpl>();
         let task = registry
-            .make_task("taskImpl", vec!["param".to_owned()])
+            .make_task("taskImpl", &vec!["param".to_owned()])
             .expect("taskImpl not registered")
             .expect("task could not be instantiated");
         task.run();

@@ -6,7 +6,8 @@ use crate::{Input, ParseResult};
 
 use super::task::Task;
 
-const TASK_DESC: &'static str = "Archive one or more schemes of your iOS app project using your local workspace";
+const TASK_DESC: &'static str =
+    "Archive one or more schemes of your iOS app project using your local workspace";
 const TASK_NAME: &'static str = "archiveLocal";
 
 #[derive(Task)]
