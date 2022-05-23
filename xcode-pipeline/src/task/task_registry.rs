@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use args::ArgsError;
 
-use super::task::{Named, Task, TaskFactory, TaskGenerator};
+use super::task::{Named, TaskFactory, TaskGenerator, TaskParseResult};
 
 pub struct TaskRegistry {
     map: HashMap<String, TaskFactory>,
@@ -25,7 +25,7 @@ impl TaskRegistry {
         &self,
         name: &str,
         args: &Vec<String>,
-    ) -> Option<Result<Box<dyn Task>, ArgsError>> {
+    ) -> Option<Result<TaskParseResult, ArgsError>> {
         self.map
             .get(name)
             .map(|factory| (factory.instantiate)(&args))
@@ -44,14 +44,17 @@ mod tests {
     use args::ArgsError;
     use macros::Task;
 
-    use crate::task::{task::Task, task_registry::TaskRegistry};
+    use crate::task::{
+        task::{Task, TaskParseResult},
+        task_registry::TaskRegistry,
+    };
 
     #[derive(Task)]
     struct TaskImpl {}
 
     impl TaskImpl {
-        fn new(_: &Vec<String>) -> Result<Box<dyn Task>, ArgsError> {
-            Ok(Box::new(TaskImpl {}))
+        fn new(_: &Vec<String>) -> Result<TaskParseResult, ArgsError> {
+            Ok(TaskParseResult::Task(Box::new(TaskImpl {})))
         }
     }
     impl Task for TaskImpl {
@@ -64,10 +67,14 @@ mod tests {
     fn task_registry() {
         let mut registry = TaskRegistry::new();
         registry.register::<TaskImpl>();
-        let task = registry
+        let task_result = registry
             .make_task("taskImpl", &vec!["param".to_owned()])
             .expect("taskImpl not registered")
-            .expect("task could not be instantiated");
+            .expect("unexpected parsing error");
+        let task = match task_result {
+            TaskParseResult::Help => panic!("should be Task"),
+            TaskParseResult::Task(t) => t,
+        };
         task.run();
         assert_eq!(registry.task_names(), vec!("taskImpl"));
     }

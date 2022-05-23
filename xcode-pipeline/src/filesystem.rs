@@ -1,2 +1,5 @@
-pub mod repository;
-pub mod repository_impl;
+mod repository;
+mod repository_impl;
+
+pub use repository::FileSystemRepository;
+pub use repository_impl::FileSystemRepositoryFsImpl;

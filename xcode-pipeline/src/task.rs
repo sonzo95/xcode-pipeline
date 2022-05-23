@@ -1,5 +1,7 @@
-pub mod cd_local;
-pub mod task;
-pub mod task_registry;
+mod archive_local;
+mod task;
+mod task_registry;
 
-pub mod archive_local;
+pub use archive_local::ArchiveLocal;
+pub use task::TaskParseResult;
+pub use task_registry::TaskRegistry;

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rand::Rng;
 
-use crate::{filesystem::repository::FileSystemRepository, git::git_service::GitService};
+use crate::{filesystem::FileSystemRepository, git::git_service::GitService};
 
 use super::xcodebuild_command_factory::XcodebuildCommandFactory;
 
@@ -15,19 +15,19 @@ pub trait XcodebuildContext {
 
 // LOCAL WORKSPACE
 
-pub struct XcodebuildContextLocalWs<'a, 'b> {
+pub struct XcodebuildContextLocalWs {
     workspace: PathBuf,
     storage_folder: PathBuf,
-    filesystem_repository: &'a dyn FileSystemRepository,
-    command_factory: &'b XcodebuildCommandFactory,
+    filesystem_repository: Box<dyn FileSystemRepository>,
+    command_factory: Box<XcodebuildCommandFactory>,
 }
 
-impl<'a, 'b> XcodebuildContextLocalWs<'a, 'b> {
+impl XcodebuildContextLocalWs {
     pub fn new(
         workspace: PathBuf,
         mut storage_folder_root: PathBuf,
-        filesystem_repository: &'a dyn FileSystemRepository,
-        command_factory: &'b XcodebuildCommandFactory,
+        filesystem_repository: Box<dyn FileSystemRepository>,
+        command_factory: Box<XcodebuildCommandFactory>,
     ) -> Self {
         let mut rng = rand::thread_rng();
         let rand_id: u32 = rng.gen();
@@ -42,7 +42,7 @@ impl<'a, 'b> XcodebuildContextLocalWs<'a, 'b> {
     }
 }
 
-impl XcodebuildContext for XcodebuildContextLocalWs<'_, '_> {
+impl XcodebuildContext for XcodebuildContextLocalWs {
     fn setup(&self) {
         println!(
             "Using storage directory {}",

@@ -7,8 +7,9 @@ mod xcodebuild;
 extern crate args;
 extern crate getopts;
 
-use task::archive_local::ArchiveLocal;
-use task::task_registry::TaskRegistry;
+use task::ArchiveLocal;
+use task::TaskParseResult;
+use task::TaskRegistry;
 
 use args::{Args, ArgsError};
 
@@ -29,7 +30,7 @@ fn main() {
         ParseResult::Input(s) => s,
     };
 
-    let task = registry
+    let task_result = registry
         .make_task(&task_name, &input_args)
         .expect(&format!(
             "Task {} not found. Use --help to see a list of supported tasks.",
@@ -37,19 +38,12 @@ fn main() {
         ))
         .unwrap();
 
-    task.run();
-    /*println!("Executing with inputs: {:?}", input);
+    let task = match task_result {
+        TaskParseResult::Task(t) => t,
+        TaskParseResult::Help => return,
+    };
 
-    let fs_repo = FileSystemRepositoryFsImpl {};
-    let command_factory = XcodebuildCommandFactory::new(input.dry_run);
-    let context = XcodebuildContextLocalWs::new(
-        Path::new(".").to_path_buf(),
-        Path::new("/tmp").to_path_buf(),
-        &fs_repo,
-        &command_factory,
-    );
-    context.setup();
-    context.tear_down();*/
+    task.run();
 }
 
 #[derive(Debug, Clone)]

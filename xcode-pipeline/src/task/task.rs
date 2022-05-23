@@ -1,5 +1,10 @@
 use args::ArgsError;
 
+pub enum TaskParseResult {
+    Help,
+    Task(Box<dyn Task>),
+}
+
 pub trait Named {
     fn name() -> String;
 }
@@ -13,5 +18,5 @@ pub trait TaskGenerator {
 }
 
 pub struct TaskFactory {
-    pub instantiate: fn(&Vec<String>) -> Result<Box<dyn Task>, ArgsError>,
+    pub instantiate: fn(&Vec<String>) -> Result<TaskParseResult, ArgsError>,
 }
