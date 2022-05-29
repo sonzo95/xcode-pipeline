@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use rand::Rng;
+use tracing::{event, Level};
 
 use crate::{filesystem::FileSystemRepository, git::git_service::GitService};
 
@@ -44,9 +45,10 @@ impl XcodebuildContextLocalWs {
 
 impl XcodebuildContext for XcodebuildContextLocalWs {
     fn setup(&self) {
-        println!(
-            "Using storage directory {}",
-            self.storage_folder.to_str().unwrap()
+        event!(Level::TRACE, "Setup");
+        event!(
+            Level::DEBUG,
+            "Creating storage directory {:?}", self.storage_folder.to_str()
         );
         self.filesystem_repository
             .create_directory(&self.storage_folder.to_str().unwrap())
@@ -54,6 +56,11 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
     }
 
     fn archive(&self, schema: &str) {
+        event!(Level::TRACE, "Archive");
+        event!(
+            Level::DEBUG,
+            "Archiving schema '{}'", schema
+        );
         self.command_factory
             .build_clean_archive(&self.workspace, schema)
             .status()
@@ -66,9 +73,10 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
     }
 
     fn tear_down(&self) {
-        println!(
-            "Deleting storage directory {:?}",
-            self.storage_folder.to_str()
+        event!(Level::TRACE, "Tear Down");
+        event!(
+            Level::DEBUG,
+            "Deleting storage directory {:?}", self.storage_folder.to_str()
         );
         self.filesystem_repository
             .delete_directory(&self.storage_folder.to_str().unwrap())

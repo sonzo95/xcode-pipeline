@@ -3,6 +3,7 @@ use std::path::Path;
 use args::{Args, ArgsError};
 use getopts::Occur;
 use macros::Task;
+use tracing::{event, Level};
 
 use crate::{
     filesystem::{FileSystemRepository, FileSystemRepositoryFsImpl},
@@ -19,6 +20,7 @@ const TASK_NAME: &'static str = "archiveLocal";
 #[derive(Task)]
 pub struct ArchiveLocal {
     xcb_context: Box<dyn XcodebuildContext>,
+    schemes: Vec<String>,
 }
 
 impl ArchiveLocal {
@@ -74,14 +76,18 @@ impl ArchiveLocal {
 
         Ok(TaskParseResult::Task(Box::new(Self {
             xcb_context: context,
+            schemes,
         })))
     }
 }
 
 impl Task for ArchiveLocal {
     fn run(&self) {
-        // println!("Executing with inputs: {:?}", input);
+        event!(Level::TRACE, "Executing task ArchiveLocal");
         self.xcb_context.setup();
+        for schema in &self.schemes {
+            self.xcb_context.archive(&schema);
+        }
         self.xcb_context.tear_down();
     }
 }
