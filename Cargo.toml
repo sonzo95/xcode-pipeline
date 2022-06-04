@@ -1,5 +1,7 @@
 [workspace]
 
 members = [
-    "xcode-pipeline"
+    "core",
+    "core_derive",
+    "cli"
 ]

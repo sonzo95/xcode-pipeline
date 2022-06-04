@@ -2,13 +2,12 @@ use std::path::Path;
 
 use args::{Args, ArgsError};
 use getopts::Occur;
-use macros::Task;
+use core_derive::Task;
 use tracing::{event, Level};
 
-use crate::{
-    filesystem::{FileSystemRepository, FileSystemRepositoryFsImpl},
+use core::{
+    filesystem::{FileSystemRepositoryFsImpl},
     xcodebuild::{XcodebuildCommandFactory, XcodebuildContext, XcodebuildContextLocalWs},
-    Input, ParseResult,
 };
 
 use super::task::{Task, TaskParseResult};

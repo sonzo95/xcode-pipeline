@@ -42,11 +42,10 @@ impl TaskRegistry {
 
 mod tests {
     use args::ArgsError;
-    use macros::Task;
+    use core_derive::Task;
 
     use crate::task::{
-        task::{Task, TaskParseResult},
-        task_registry::TaskRegistry,
+        task::{Task, TaskParseResult}, TaskRegistry,
     };
 
     #[derive(Task)]
