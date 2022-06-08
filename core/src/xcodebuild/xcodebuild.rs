@@ -62,7 +62,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
             "Archiving schema '{}'", schema
         );
         self.command_factory
-            .build_clean_archive(&self.workspace, schema)
+            .build_clean_archive(&self.workspace, schema, &self.storage_folder)
             .status()
             .expect("Couldn't run archive");
     }
@@ -157,7 +157,7 @@ impl XcodebuildContext for XcodebuildContextGitWs<'_> {
         }
 
         self.command_factory
-            .build_clean_archive(&workspace, schema)
+            .build_clean_archive(&workspace, schema, &self.storage_folder)
             .status()
             .expect("Couldn't run archive");
     }
