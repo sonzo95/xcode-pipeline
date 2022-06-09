@@ -50,6 +50,14 @@ impl ArchiveLocal {
             None,
         );
         args.option(
+            "e",
+            "exportOptionPlist",
+            "The path to the export options plist file",
+            "EXPORT_OPTIONS_PLIST",
+            Occur::Req,
+            None,
+        );
+        args.option(
             "u",
             "username",
             "Appstoreconnect account username",
@@ -75,6 +83,7 @@ impl ArchiveLocal {
 
         let dry_run: bool = args.value_of("dry-run")?;
         let schemes = args.values_of::<String>("schema")?;
+        let export_options_plist = args.value_of::<String>("exportOptionPlist")?;
         let username = args.value_of("username")?;
         let password = args.value_of("password")?;
 
@@ -82,6 +91,7 @@ impl ArchiveLocal {
             .value_of::<String>("workspace")
             .unwrap_or(".".to_string());
         let workspace_path = Path::new(&workspace);
+        let export_options_plist_path = Path::new(&export_options_plist);
 
         let fs_repo = Box::new(FileSystemRepositoryFsImpl {});
 
@@ -89,6 +99,7 @@ impl ArchiveLocal {
         let context = Box::new(XcodebuildContextLocalWs::new(
             workspace_path.to_path_buf(),
             Path::new("/tmp").to_path_buf(),
+            export_options_plist_path.to_path_buf(),
             fs_repo,
             command_factory,
         ));
@@ -107,9 +118,31 @@ impl Task for ArchiveLocal {
         event!(Level::TRACE, "Executing task ArchiveLocal");
         self.xcb_context.setup();
         for schema in &self.schemes {
-            self.xcb_context.archive(&schema);
-            self.xcb_context.export(&schema);
-            self.xcb_context.upload(&schema, &self.asc_username, &self.asc_password);
+            // TODO handle exit codes better
+            let archive_exit = self.xcb_context.archive(&schema);
+            if !archive_exit.success() {
+                event!(
+                    Level::ERROR,
+                    "Archive of schema {} failed with status: {}", schema, archive_exit,
+                );
+                continue;
+            }
+            let export_exit = self.xcb_context.export(&schema);
+            if !export_exit.success() {
+                event!(
+                    Level::ERROR,
+                    "Export of schema {} failed with status: {}", schema, export_exit
+                );
+                continue;
+            }
+            let upload_exit = self.xcb_context.upload(&schema, &self.asc_username, &self.asc_password);
+            if !upload_exit.success() {
+                event!(
+                    Level::ERROR,
+                    "Upload of schema {} failed with status: {}", schema, upload_exit
+                );
+                continue;
+            }
         }
         self.xcb_context.tear_down();
     }

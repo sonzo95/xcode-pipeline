@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, process::ExitStatus};
 
 use rand::Rng;
 use tracing::{event, Level};
@@ -9,9 +9,9 @@ use super::xcodebuild_command_factory::XcodebuildCommandFactory;
 
 pub trait XcodebuildContext {
     fn setup(&self);
-    fn archive(&self, schema: &str);
-    fn export(&self, schema: &str);
-    fn upload(&self, schema: &str, username: &str, password: &str);
+    fn archive(&self, schema: &str) -> ExitStatus;
+    fn export(&self, schema: &str) -> ExitStatus;
+    fn upload(&self, schema: &str, username: &str, password: &str) -> ExitStatus;
     fn tear_down(&self);
 }
 
@@ -20,6 +20,7 @@ pub trait XcodebuildContext {
 pub struct XcodebuildContextLocalWs {
     workspace: PathBuf,
     storage_folder: PathBuf,
+    export_options_plist: PathBuf,
     filesystem_repository: Box<dyn FileSystemRepository>,
     command_factory: Box<XcodebuildCommandFactory>,
 }
@@ -28,6 +29,7 @@ impl XcodebuildContextLocalWs {
     pub fn new(
         workspace: PathBuf,
         mut storage_folder_root: PathBuf,
+        export_options_plist: PathBuf,
         filesystem_repository: Box<dyn FileSystemRepository>,
         command_factory: Box<XcodebuildCommandFactory>,
     ) -> Self {
@@ -38,6 +40,7 @@ impl XcodebuildContextLocalWs {
         Self {
             workspace,
             storage_folder: storage_folder_root,
+            export_options_plist,
             filesystem_repository,
             command_factory,
         }
@@ -56,7 +59,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
             .expect("couldn't create storage folder");
     }
 
-    fn archive(&self, schema: &str) {
+    fn archive(&self, schema: &str) -> ExitStatus {
         event!(Level::TRACE, "Archive");
         event!(
             Level::DEBUG,
@@ -65,22 +68,22 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
         self.command_factory
             .build_clean_archive(&self.workspace, schema, &self.storage_folder)
             .status()
-            .expect("Couldn't run archive");
+            .expect("Couldn't run archive")
     }
 
-    fn export(&self, schema: &str) {
+    fn export(&self, schema: &str) -> ExitStatus {
         event!(Level::TRACE, "Export");
         event!(
             Level::DEBUG,
             "Exporting schema '{}'", schema
         );
         self.command_factory
-            .build_export(schema, &self.storage_folder)
+            .build_export(schema, &self.storage_folder, &self.export_options_plist)
             .status()
-            .expect("Couldn't run export");
+            .expect("Couldn't run export")
     }
 
-    fn upload(&self, schema: &str, username: &str, password: &str) {
+    fn upload(&self, schema: &str, username: &str, password: &str) -> ExitStatus {
         event!(Level::TRACE, "Upload");
         event!(
             Level::DEBUG,
@@ -89,7 +92,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
         self.command_factory
             .build_upload(schema, &self.storage_folder, username, password)
             .status()
-            .expect("Couldn't run upload");
+            .expect("Couldn't run upload")
     }
 
     fn tear_down(&self) {
@@ -166,7 +169,7 @@ impl XcodebuildContext for XcodebuildContextGitWs<'_> {
             .expect("Failed to clone repository");
     }
 
-    fn archive(&self, schema: &str) {
+    fn archive(&self, schema: &str) -> ExitStatus {
         let mut workspace = self.storage_folder.clone();
         if let Some(git_dir) = std::fs::read_dir(self.storage_folder.clone())
             .expect("Could not open storage_folder")
@@ -179,15 +182,15 @@ impl XcodebuildContext for XcodebuildContextGitWs<'_> {
         self.command_factory
             .build_clean_archive(&workspace, schema, &self.storage_folder)
             .status()
-            .expect("Couldn't run archive");
+            .expect("Couldn't run archive")
     }
 
-    fn export(&self, schema: &str) {
+    fn export(&self, schema: &str) -> ExitStatus {
         // export
         unimplemented!()
     }
 
-    fn upload(&self, schema: &str, username: &str, password: &str) {
+    fn upload(&self, schema: &str, username: &str, password: &str) -> ExitStatus {
         todo!()
     }
 

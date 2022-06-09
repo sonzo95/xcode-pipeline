@@ -36,6 +36,7 @@ impl XcodebuildCommandFactory {
         &self,
         schema: &str,
         archive_folder: &Path,
+        export_options_plist: &Path,
     ) -> Command {
         let mut command = Command::new("xcodebuild");
         if self.dry_run {
@@ -51,7 +52,8 @@ impl XcodebuildCommandFactory {
         command
             .arg("-exportArchive")
             .args(["-archivePath", &archive_path_buf.to_str().unwrap()])
-            .args(["-exportPath", &export_path_buf.to_str().unwrap()]);
+            .args(["-exportPath", &export_path_buf.to_str().unwrap()])
+            .args(["-exportOptionsPlist", export_options_plist.to_str().unwrap()]);
         command
     }
 
@@ -76,6 +78,7 @@ impl XcodebuildCommandFactory {
         export_path_buf.push(&export_name);
 
         command
+            .args(["-t", "ios"])
             .args(["-f", &export_path_buf.to_str().unwrap()])
             .args(["-u", username])
             .args(["-p", password]);
