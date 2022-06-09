@@ -11,6 +11,7 @@ pub trait XcodebuildContext {
     fn setup(&self);
     fn archive(&self, schema: &str);
     fn export(&self, schema: &str);
+    fn upload(&self, schema: &str, username: &str, password: &str);
     fn tear_down(&self);
 }
 
@@ -68,8 +69,27 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
     }
 
     fn export(&self, schema: &str) {
-        // export
-        unimplemented!()
+        event!(Level::TRACE, "Export");
+        event!(
+            Level::DEBUG,
+            "Exporting schema '{}'", schema
+        );
+        self.command_factory
+            .build_export(schema, &self.storage_folder)
+            .status()
+            .expect("Couldn't run export");
+    }
+
+    fn upload(&self, schema: &str, username: &str, password: &str) {
+        event!(Level::TRACE, "Upload");
+        event!(
+            Level::DEBUG,
+            "Uploading schema '{}'", schema
+        );
+        self.command_factory
+            .build_upload(schema, &self.storage_folder, username, password)
+            .status()
+            .expect("Couldn't run upload");
     }
 
     fn tear_down(&self) {
@@ -165,6 +185,10 @@ impl XcodebuildContext for XcodebuildContextGitWs<'_> {
     fn export(&self, schema: &str) {
         // export
         unimplemented!()
+    }
+
+    fn upload(&self, schema: &str, username: &str, password: &str) {
+        todo!()
     }
 
     fn tear_down(&self) {

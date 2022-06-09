@@ -20,6 +20,8 @@ const TASK_NAME: &'static str = "archiveLocal";
 pub struct ArchiveLocal {
     xcb_context: Box<dyn XcodebuildContext>,
     schemes: Vec<String>,
+    asc_username: String,
+    asc_password: String,
 }
 
 impl ArchiveLocal {
@@ -47,6 +49,22 @@ impl ArchiveLocal {
             Occur::Optional,
             None,
         );
+        args.option(
+            "u",
+            "username",
+            "Appstoreconnect account username",
+            "USERNAME",
+            Occur::Req,
+            None,
+        );
+        args.option(
+            "p",
+            "password",
+            "Appstoreconnect account password",
+            "PASSWORD",
+            Occur::Req,
+            None,
+        );
         args.parse(input)?;
 
         let help = args.value_of("help")?;
@@ -57,6 +75,8 @@ impl ArchiveLocal {
 
         let dry_run: bool = args.value_of("dry-run")?;
         let schemes = args.values_of::<String>("schema")?;
+        let username = args.value_of("username")?;
+        let password = args.value_of("password")?;
 
         let workspace = args
             .value_of::<String>("workspace")
@@ -76,6 +96,8 @@ impl ArchiveLocal {
         Ok(TaskParseResult::Task(Box::new(Self {
             xcb_context: context,
             schemes,
+            asc_username: username,
+            asc_password: password,
         })))
     }
 }
@@ -86,6 +108,8 @@ impl Task for ArchiveLocal {
         self.xcb_context.setup();
         for schema in &self.schemes {
             self.xcb_context.archive(&schema);
+            self.xcb_context.export(&schema);
+            self.xcb_context.upload(&schema, &self.asc_username, &self.asc_password);
         }
         self.xcb_context.tear_down();
     }
