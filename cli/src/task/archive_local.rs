@@ -22,6 +22,7 @@ pub struct ArchiveLocal {
     schemes: Vec<String>,
     asc_username: String,
     asc_password: String,
+    no_tear_down: bool,
 }
 
 impl ArchiveLocal {
@@ -50,8 +51,16 @@ impl ArchiveLocal {
             None,
         );
         args.option(
+            "",
+            "no-tear-down",
+            "Ignores the tear down operation and leaves the temporary working directory intact.",
+            "NO_TEAR_DOWN",
+            Occur::Optional,
+            None,
+        );
+        args.option(
             "e",
-            "exportOptionPlist",
+            "export-option-plist",
             "The path to the export options plist file",
             "EXPORT_OPTIONS_PLIST",
             Occur::Req,
@@ -82,8 +91,9 @@ impl ArchiveLocal {
         }
 
         let dry_run: bool = args.value_of("dry-run")?;
+        let no_tear_down: bool = args.value_of("no-tear-down")?;
         let schemes = args.values_of::<String>("schema")?;
-        let export_options_plist = args.value_of::<String>("exportOptionPlist")?;
+        let export_options_plist = args.value_of::<String>("export-option-plist")?;
         let username = args.value_of("username")?;
         let password = args.value_of("password")?;
 
@@ -109,6 +119,7 @@ impl ArchiveLocal {
             schemes,
             asc_username: username,
             asc_password: password,
+            no_tear_down,
         })))
     }
 }
@@ -118,6 +129,9 @@ impl Task for ArchiveLocal {
         event!(Level::TRACE, "Executing task ArchiveLocal");
         self.xcb_context.setup();
         for schema in &self.schemes {
+            event!(Level::INFO, "Executing operations for schema {}", schema);
+
+            event!(Level::INFO, "Archiving...");
             // TODO handle exit codes better
             let archive_exit = self.xcb_context.archive(&schema);
             if !archive_exit.success() {
@@ -127,6 +141,9 @@ impl Task for ArchiveLocal {
                 );
                 continue;
             }
+            event!(Level::INFO, "Archive finished");
+
+            event!(Level::INFO, "Exporting ipa file...");
             let export_exit = self.xcb_context.export(&schema);
             if !export_exit.success() {
                 event!(
@@ -135,6 +152,9 @@ impl Task for ArchiveLocal {
                 );
                 continue;
             }
+            event!(Level::INFO, "Export finished");
+
+            event!(Level::INFO, "Uploading...");
             let upload_exit = self.xcb_context.upload(&schema, &self.asc_username, &self.asc_password);
             if !upload_exit.success() {
                 event!(
@@ -143,7 +163,10 @@ impl Task for ArchiveLocal {
                 );
                 continue;
             }
+            event!(Level::INFO, "Upload finished");
         }
-        self.xcb_context.tear_down();
+        if !self.no_tear_down {
+            self.xcb_context.tear_down();
+        }
     }
 }
