@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use args::{Args, ArgsError};
-use getopts::Occur;
 use core_derive::Task;
+use getopts::Occur;
 use tracing::{event, Level};
 
 use core::{
-    filesystem::{FileSystemRepositoryFsImpl},
+    filesystem::FileSystemRepositoryFsImpl,
     xcodebuild::{XcodebuildCommandFactory, XcodebuildContext, XcodebuildContextLocalWs},
 };
 
@@ -50,13 +50,10 @@ impl ArchiveLocal {
             Occur::Optional,
             None,
         );
-        args.option(
+        args.flag(
             "",
             "no-tear-down",
             "Ignores the tear down operation and leaves the temporary working directory intact.",
-            "NO_TEAR_DOWN",
-            Occur::Optional,
-            None,
         );
         args.option(
             "e",
@@ -137,7 +134,9 @@ impl Task for ArchiveLocal {
             if !archive_exit.success() {
                 event!(
                     Level::ERROR,
-                    "Archive of schema {} failed with status: {}", schema, archive_exit,
+                    "Archive of schema {} failed with status: {}",
+                    schema,
+                    archive_exit,
                 );
                 continue;
             }
@@ -148,18 +147,24 @@ impl Task for ArchiveLocal {
             if !export_exit.success() {
                 event!(
                     Level::ERROR,
-                    "Export of schema {} failed with status: {}", schema, export_exit
+                    "Export of schema {} failed with status: {}",
+                    schema,
+                    export_exit
                 );
                 continue;
             }
             event!(Level::INFO, "Export finished");
 
             event!(Level::INFO, "Uploading...");
-            let upload_exit = self.xcb_context.upload(&schema, &self.asc_username, &self.asc_password);
+            let upload_exit =
+                self.xcb_context
+                    .upload(&schema, &self.asc_username, &self.asc_password);
             if !upload_exit.success() {
                 event!(
                     Level::ERROR,
-                    "Upload of schema {} failed with status: {}", schema, upload_exit
+                    "Upload of schema {} failed with status: {}",
+                    schema,
+                    upload_exit
                 );
                 continue;
             }

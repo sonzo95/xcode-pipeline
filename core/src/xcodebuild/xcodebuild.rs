@@ -1,4 +1,7 @@
-use std::{path::{Path, PathBuf}, process::ExitStatus};
+use std::{
+    path::{Path, PathBuf},
+    process::ExitStatus,
+};
 
 use rand::Rng;
 use tracing::{event, Level};
@@ -52,7 +55,8 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
         event!(Level::TRACE, "Setup");
         event!(
             Level::DEBUG,
-            "Creating storage directory {:?}", self.storage_folder.to_str()
+            "Creating storage directory {:?}",
+            self.storage_folder.to_str()
         );
         self.filesystem_repository
             .create_directory(&self.storage_folder.to_str().unwrap())
@@ -61,10 +65,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
 
     fn archive(&self, schema: &str) -> ExitStatus {
         event!(Level::TRACE, "Archive");
-        event!(
-            Level::DEBUG,
-            "Archiving schema '{}'", schema
-        );
+        event!(Level::DEBUG, "Archiving schema '{}'", schema);
         self.command_factory
             .build_clean_archive(&self.workspace, schema, &self.storage_folder)
             .status()
@@ -73,10 +74,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
 
     fn export(&self, schema: &str) -> ExitStatus {
         event!(Level::TRACE, "Export");
-        event!(
-            Level::DEBUG,
-            "Exporting schema '{}'", schema
-        );
+        event!(Level::DEBUG, "Exporting schema '{}'", schema);
         self.command_factory
             .build_export(schema, &self.storage_folder, &self.export_options_plist)
             .status()
@@ -85,10 +83,7 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
 
     fn upload(&self, schema: &str, username: &str, password: &str) -> ExitStatus {
         event!(Level::TRACE, "Upload");
-        event!(
-            Level::DEBUG,
-            "Uploading schema '{}'", schema
-        );
+        event!(Level::DEBUG, "Uploading schema '{}'", schema);
         self.command_factory
             .build_upload(schema, &self.storage_folder, username, password)
             .status()
@@ -99,7 +94,8 @@ impl XcodebuildContext for XcodebuildContextLocalWs {
         event!(Level::TRACE, "Tear Down");
         event!(
             Level::DEBUG,
-            "Deleting storage directory {:?}", self.storage_folder.to_str()
+            "Deleting storage directory {:?}",
+            self.storage_folder.to_str()
         );
         self.filesystem_repository
             .delete_directory(&self.storage_folder.to_str().unwrap())

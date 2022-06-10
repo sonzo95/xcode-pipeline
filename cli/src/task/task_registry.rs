@@ -45,7 +45,8 @@ mod tests {
     use core_derive::Task;
 
     use crate::task::{
-        task::{Task, TaskParseResult}, TaskRegistry,
+        task::{Task, TaskParseResult},
+        TaskRegistry,
     };
 
     #[derive(Task)]

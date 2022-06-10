@@ -1,4 +1,8 @@
-use std::{path::Path, process::Command};
+use std::{
+    fs::{self, FileType},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub struct XcodebuildCommandFactory {
     dry_run: bool,
@@ -42,18 +46,20 @@ impl XcodebuildCommandFactory {
         if self.dry_run {
             command.arg("-dry-run");
         }
-        let archive_name = format!("{}.xcarchive", schema);
-        let export_name = format!("{}.ipa", schema);
         let mut archive_path_buf = archive_folder.to_path_buf();
         let mut export_path_buf = archive_path_buf.clone();
+        let archive_name = format!("{}.xcarchive", schema);
         archive_path_buf.push(&archive_name);
-        export_path_buf.push(&export_name);
+        export_path_buf.push(&schema);
 
         command
             .arg("-exportArchive")
             .args(["-archivePath", &archive_path_buf.to_str().unwrap()])
             .args(["-exportPath", &export_path_buf.to_str().unwrap()])
-            .args(["-exportOptionsPlist", export_options_plist.to_str().unwrap()]);
+            .args([
+                "-exportOptionsPlist",
+                export_options_plist.to_str().unwrap(),
+            ]);
         command
     }
 
@@ -65,17 +71,30 @@ impl XcodebuildCommandFactory {
         password: &str,
     ) -> Command {
         let mut command = Command::new("xcrun");
-        command
-            .arg("altool")
-            .arg("--upload-app");
-        
+        command.arg("altool").arg("--upload-app");
+
         if self.dry_run {
             command.arg("-dry-run");
         }
-        
-        let export_name = format!("{}.ipa", schema);
+
         let mut export_path_buf = export_folder.to_path_buf();
-        export_path_buf.push(&export_name);
+        export_path_buf.push(&schema);
+
+        let mut export_dir = fs::read_dir(export_path_buf.clone()).expect("Couldn't open export directory");
+        let ipa_file = export_dir
+            .find_map(|item| {
+                if let Ok(item) = item {
+                    if item.path().to_str().unwrap().ends_with(".ipa") {
+                        Some(item.path())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .expect("Couldn't find the ipa file");
+        export_path_buf.push(ipa_file.components().last().unwrap());
 
         command
             .args(["-t", "ios"])
