@@ -80,19 +80,8 @@ impl XcodebuildCommandFactory {
         let mut export_path_buf = export_folder.to_path_buf();
         export_path_buf.push(&schema);
 
-        let mut export_dir = fs::read_dir(export_path_buf.clone()).expect("Couldn't open export directory");
-        let ipa_file = export_dir
-            .find_map(|item| {
-                if let Ok(item) = item {
-                    if item.path().to_str().unwrap().ends_with(".ipa") {
-                        Some(item.path())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
+        let export_dir = fs::read_dir(export_path_buf.clone()).expect("Couldn't open export directory");
+        let ipa_file = Self::find_first_file_component_by_extension(export_dir, "ipa")
             .expect("Couldn't find the ipa file");
         export_path_buf.push(ipa_file.components().last().unwrap());
 
@@ -102,5 +91,26 @@ impl XcodebuildCommandFactory {
             .args(["-u", username])
             .args(["-p", password]);
         command
+    }
+
+    // Helper
+
+    fn find_first_file_component_by_extension(
+        mut read_dir: fs::ReadDir,
+        extension: &str,
+    ) -> Option<PathBuf> {
+        let search_str = format!(".{}", extension);
+        read_dir
+            .find_map(|item| {
+                if let Ok(item) = item {
+                    if item.path().to_str().unwrap_or("").ends_with(&search_str) {
+                        Some(item.path())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
     }
 }
