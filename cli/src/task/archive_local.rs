@@ -3,6 +3,8 @@ use std::path::Path;
 use args::{Args, ArgsError};
 use core_derive::Task;
 use getopts::Occur;
+
+use serde::Deserialize;
 use tracing::{event, Level};
 
 use core::{
@@ -25,8 +27,22 @@ pub struct ArchiveLocal {
     no_tear_down: bool,
 }
 
+#[derive(Deserialize)]
+struct Config {
+    pub workspace: String,
+    pub export_options_plist: String,
+    // maybe add the list of schemes here
+}
+
 impl ArchiveLocal {
     pub fn new(input: &Vec<String>) -> Result<TaskParseResult, ArgsError> {
+        // Read config from xccd.toml
+        let config_contents = std::fs::read_to_string("xccd.toml")
+            .expect("Couldn't open or find `xccd.toml` in the current directory");
+        let config: Config = toml::from_str(&config_contents)
+            .expect("Couldn't parse `xccd.toml` as a valid toml file");
+
+        // Parse command line args
         let mut args = Args::new(TASK_NAME, TASK_DESC);
         args.flag("h", "help", "Print the usage menu");
         args.flag(
@@ -42,26 +58,10 @@ impl ArchiveLocal {
             Occur::Multi,
             None,
         );
-        args.option(
-            "w",
-            "workspace",
-            "The path to the workspace directory",
-            "WORKSPACE",
-            Occur::Optional,
-            None,
-        );
         args.flag(
             "",
             "no-tear-down",
             "Ignores the tear down operation and leaves the temporary working directory intact.",
-        );
-        args.option(
-            "e",
-            "export-option-plist",
-            "The path to the export options plist file",
-            "EXPORT_OPTIONS_PLIST",
-            Occur::Req,
-            None,
         );
         args.option(
             "u",
@@ -74,7 +74,7 @@ impl ArchiveLocal {
         args.option(
             "p",
             "password",
-            "Appstoreconnect account password",
+            "Appstoreconnect app-specific password",
             "PASSWORD",
             Occur::Req,
             None,
@@ -90,15 +90,12 @@ impl ArchiveLocal {
         let dry_run: bool = args.value_of("dry-run")?;
         let no_tear_down: bool = args.value_of("no-tear-down")?;
         let schemes = args.values_of::<String>("schema")?;
-        let export_options_plist = args.value_of::<String>("export-option-plist")?;
         let username = args.value_of("username")?;
         let password = args.value_of("password")?;
 
-        let workspace = args
-            .value_of::<String>("workspace")
-            .unwrap_or(".".to_string());
-        let workspace_path = Path::new(&workspace);
-        let export_options_plist_path = Path::new(&export_options_plist);
+        // TODO maybe just pass the whole config struct
+        let workspace_path = Path::new(&config.workspace);
+        let export_options_plist_path = Path::new(&config.export_options_plist);
 
         let fs_repo = Box::new(FileSystemRepositoryFsImpl {});
 
